@@ -1,0 +1,34 @@
+name: Daily Brazil Speed Cameras Release
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch Brazil speed cameras & build csv_files.zip
+        run: python fetch_br_speed_cameras.py --out-dir dist
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_id }}
+          name: Brazil Speed Cameras (${{ github.run_number }})
+          body: |
+            Automated OpenStreetMap (ODbL 1.0) Brazil fixed speed-camera dataset.
+            - `csv_files.zip` contains `GATSO_ALL.csv`, `br_speed_cameras.csv`, and `ATTRIBUTION.md`.
+          files: dist/csv_files.zip
