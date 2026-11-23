@@ -31,6 +31,7 @@ OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
     "https://lz4.overpass-api.de/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
 
 # Regional tiles covering all of Brazil without triggering Overpass memory/output limits
@@ -131,19 +132,21 @@ out skel qt;
 """.strip()
     data = urllib.parse.urlencode({"data": ql}).encode("utf-8")
     last_err = None
-    for url in OVERPASS_ENDPOINTS:
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={"User-Agent": "OpenZeekr-BR-SpeedCameras/2.1"},
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=timeout + 20) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except Exception as e:
-            last_err = e
-            print(f"[warn] {url} failed: {e}", file=sys.stderr)
-    raise RuntimeError(f"All Overpass endpoints failed: {last_err}")
+    for attempt, backoff in enumerate((5, 15, 30), start=1):
+        for url in OVERPASS_ENDPOINTS:
+            req = urllib.request.Request(
+                url,
+                data=data,
+                headers={"User-Agent": "OpenZeekr-BR-SpeedCameras/2.2"},
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=timeout + 20) as resp:
+                    return json.loads(resp.read().decode("utf-8"))
+            except Exception as e:
+                last_err = e
+                print(f"[warn] attempt {attempt} {url} failed: {e}", file=sys.stderr)
+        time.sleep(backoff)
+    raise RuntimeError(f"All Overpass endpoints failed after retries: {last_err}")
 
 
 def compute_way_heading(node_id: int, way: dict, nodes_by_id: dict[int, dict]) -> int | None:
