@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -24,11 +24,9 @@ jobs:
         run: python fetch_br_speed_cameras.py --out-dir dist
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.run_id }}
-          name: Brazil Speed Cameras (${{ github.run_number }})
-          body: |
-            Automated OpenStreetMap (ODbL 1.0) Brazil fixed speed-camera dataset.
-            - `csv_files.zip` contains `GATSO_ALL.csv`, `br_speed_cameras.csv`, and `ATTRIBUTION.md`.
-          files: dist/csv_files.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ github.run_id }}" dist/csv_files.zip \
+            --title "Brazil Speed Cameras (${{ github.run_number }})" \
+            --notes $'Automated OpenStreetMap (ODbL 1.0) Brazil fixed speed-camera dataset.\n- `csv_files.zip` contains `GATSO_ALL.csv`, `br_speed_cameras.csv`, and `ATTRIBUTION.md`.'
